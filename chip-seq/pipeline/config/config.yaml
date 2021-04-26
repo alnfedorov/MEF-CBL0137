@@ -1,0 +1,37 @@
+peak_calling:
+    macs2:
+        gsize: mm
+        keepdup: all
+        fecutoff: 2
+design:
+    curax-0h-FLAG-vs-IgG:
+        treatment: ["curax-0h-FLAG-1", "curax-0h-FLAG-2"]
+        control: ["curax-0h-IgG-1", "curax-0h-IgG-2"]
+
+    curax-14h-FLAG-vs-IgG:
+        treatment: ["curax-14h-FLAG-1", "curax-14h-FLAG-2"]
+        control: ["curax-14h-IgG-1", "curax-14h-IgG-2"]
+
+    curax-14h-Z22-vs-IgG:
+        treatment: ["curax-14h-Z22-1", "curax-14h-Z22-2"]
+        control: ["curax-14h-IgG-1", "curax-14h-IgG-2"]
+samples:
+    paired: [
+            # curaxin 0h
+            "curax-0h-IgG-1", "curax-0h-IgG-2", 
+            "curax-0h-FLAG-1", "curax-0h-FLAG-2",
+            # curaxin 14h
+            "curax-14h-IgG-1", "curax-14h-IgG-2",
+            "curax-14h-FLAG-1", "curax-14h-FLAG-2",
+            "curax-14h-Z22-1", "curax-14h-Z22-2",
+        ]
+    organism:
+        mm: [
+            # curaxin 0h
+            "curax-0h-IgG-1", "curax-0h-IgG-2", 
+            "curax-0h-FLAG-1", "curax-0h-FLAG-2",
+            # curaxin 14h
+            "curax-14h-IgG-1", "curax-14h-IgG-2",
+            "curax-14h-FLAG-1", "curax-14h-FLAG-2",
+            "curax-14h-Z22-1", "curax-14h-Z22-2",
+        ]

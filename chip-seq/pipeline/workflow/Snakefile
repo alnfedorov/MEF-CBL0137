@@ -1,0 +1,31 @@
+for inc in ["samples", "design", "fragment_size", "peak_calling"]:
+    include: f"py/{inc}.py"
+
+
+for inc in ["align_pe", "download_SRA", "mm10", "qc", "index", "macs2"]:
+    include: f"rules/{inc}.smk"
+
+
+
+# gather all multiqc reports
+rule all_multiqc:
+    input:
+        [f"{samples.folder(s)}/qc/multiqc_report.html" for s in samples.all()],
+    output:
+        "results/qc/multiqc_report.html"
+    run:
+        samplesqc = " ".join([os.path.dirname(str(x)) for x in input])
+        out = os.path.dirname(str(output))
+        shell(f"multiqc -f -o {out} {samplesqc}")
+
+
+rule all:
+    input:
+        # qc
+        "results/qc/multiqc_report.html",
+        # signal
+        expand("results/signal/{design}-macs2-{data}.bw", data=["fe"], design=config["design"].keys()),
+        # peaks
+        expand("results/peaks/{design}-macs2.narrowPeak", design=config["design"].keys())
+
+# snakemake --cores 16 --configfile config/config.yaml -d . --snakefile workflow/Snakefile all
