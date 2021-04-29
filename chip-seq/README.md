@@ -15,26 +15,26 @@ Before running the pipeline, make sure to place raw fq.gz files in `pipeline/res
 
 Once the pipeline finishes, called peaks, fold enrichment tracks and basic QC metrics will be available in the `pipeline/results` folder.
 
-### Artifacts
+### Analysis
 #### Resources
-The `artifacts` folder contains scripts to reproduce chip-seq relevant plots and supplements. These scripts depends on the pipeline results, which can be linked like this:
+The `analysis` folder contains scripts to reproduce chip-seq relevant plots and supplements. These scripts depends on the pipeline results, which can be linked like this:
 ```bash
 # genome
-sudo ln -f $(pwd)/pipeline/resources/mm10/genome.fa $(pwd)/artifacts/resources/genome.fa
+sudo ln -f $(pwd)/pipeline/resources/mm10/genome.fa $(pwd)/analysis/resources/genome.fa
 # fold enrichment
-cp -R pipeline/results/signal/ artifacts/resources/signal
+cp -R pipeline/results/signal/ analysis/resources/signal
 # peaks
-cp -R pipeline/results/peaks/ artifacts/resources/peaks
+cp -R pipeline/results/peaks/ analysis/resources/peaks
 ```
 There are additional external data (RepeatMasker annotation, ENCODE blacklist, L1Base) stored directly in the repository. To avoid running the entire pipeline, one can use signal and peak files from the GEO submission.
 
-Some artifacts require a compiled zhunt program, which can be built with GCC: `gcc artifacts/resources/zhunt2.c -lm -o artifacts/resources/zhunt2`.
+Some analysis require a compiled zhunt program, which can be built with GCC: `gcc analysis/resources/zhunt2.c -lm -o analysis/resources/zhunt2`. **We are waiting for the licensed version of zhunt to include the sources in the repository.**
 #### Reproduction of results 
-The first step to reproduce artifacts is to restore the environment described in the docker file:
+The first step to reproduce analysis is to restore the environment described in the docker file:
 ```bash
-cd artifacts
-sudo docker build -t chipseq-artifacts:latest docker/
-sudo docker run --rm -it -v $(pwd):/project --name chipseq-artifacts-container chipseq-artifacts:latest
+cd analysis
+sudo docker build -t chipseq-analysis:latest docker/
+sudo docker run --rm -it -v $(pwd):/project --name chipseq-analysis-container chipseq-analysis:latest
 ```
 Then run any **Python** script in the `scripts` folder, for example: `python3 scripts/mm10-coverage-by-repeats`. 
 
