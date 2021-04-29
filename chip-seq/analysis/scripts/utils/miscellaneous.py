@@ -49,7 +49,9 @@ def match_to_consensus(consensus: str, repeat: str, gapopen: int = 5, gapext: in
 
 def repeat_position_to_consensus_position(matching: np.ndarray, repind: int) -> int:
     """Find closest matched consensus position for the given repeat coordinate"""
-    ind = np.abs(matching - repind).argmin()
+    ind = np.abs(matching - repind)
+    ind[matching == -1] = ind.max()
+    ind = ind.argmin()
     assert matching[ind] != -1
     return ind
 

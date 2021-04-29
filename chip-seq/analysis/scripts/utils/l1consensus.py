@@ -16,7 +16,7 @@ def sequence(l1: str) -> str:
     return seq
 
 
-# created by NCBI ORFfinder online tool
+# created by the NCBI ORFfinder online tool
 def structure(l1: str) -> dict:
     return {
         "L1Md_T": {
