@@ -1,5 +1,6 @@
 import pathlib
 from typing import Tuple
+from collections import Counter
 
 import numpy as np
 import pandas as pd
@@ -28,9 +29,9 @@ repmasker = BedTool(utils.paths.REPEATMASKER).sort() \
 REPEATS = {"L1Md_A": [], "L1Md_T": []}
 for r in tqdm(repmasker):
     # keep only highly conserved sequences
-    if r.name in REPEATS and 6000 <= r.length <= 8000:
+    if r.name in REPEATS:
         REPEATS[r.name].append(r)
-print({k: len(v) for k, v in REPEATS.items()})
+print("Total repeats: ", {k: len(v) for k, v in REPEATS.items()})
 REPEATS = {k: BedTool(v).sort() for k, v in REPEATS.items()}
 
 # 2 - fetch sequences for each repeat and create a dataframe
@@ -80,12 +81,12 @@ for _, row in df.iterrows():
         enrichment = np.asarray([enrichment[x] if x != -1 else 0 for x in row['matching-to-consensus']])
 
         utr5end = utils.l1consensus.structure(row['repeat'])["5`UTR"][1]
-        if (enrichment[:utr5end].max() / enrichment.max()) < 0.75:
+        if enrichment[:utr5end].max() != enrichment.max():
             utr5_enriched = False
             break
     mask.append(utr5_enriched)
 mask = np.asarray(mask)
-print(f"5`UTR enriched: {sum(mask)}/{mask.size}")
+print(f"5`UTR enriched: {mask.sum()}/{mask.size}")
 df = df[mask]
 
 
@@ -112,43 +113,40 @@ def infer_summit(repeat: str, bigwigs: list, matching: np.ndarray,
         values = np.sum(values, axis=0)[::-1]
         seqsummit = values.argmax()
         mm10summit = end - seqsummit
-    conssummit = utils.miscellaneous.repeat_position_to_consensus_position(matching, seqsummit)
-    return conssummit, mm10summit
+    return mm10summit
 
 
 conssummits, mm10summits = [], []
 for _, row in df.iterrows():
-    conssummit, mm10summit = infer_summit(
+    mm10summit = infer_summit(
         row['repeat'], [z22enrich, flagenrich], row['matching-to-consensus'], row['chrom'],
         row['repeat-start(mm10)'], row['repeat-end(mm10)'], row['strand']
     )
-    conssummits.append(conssummit)
     mm10summits.append(mm10summit)
 
-df['Z22-FLAG-enrichment-5`UTR-summit(consensus)'] = conssummits
-df['Z22-FLAG-enrichment-5`UTR-summit(mm10)'] = mm10summits
+df['joint-5`UTR-enrichment-summit(mm10)'] = mm10summits
 
 # 5 - get a roi for each summit
 starts, ends = [], []
-offset = 150
+SUMMIT_OFFSET = 150
 for _, row in df.iterrows():
-    summit = row['Z22-FLAG-enrichment-5`UTR-summit(mm10)']
+    summit = row['joint-5`UTR-enrichment-summit(mm10)']
     starts.append(
-        max(row['repeat-start(mm10)'], summit - offset)
+        max(row['repeat-start(mm10)'], summit - SUMMIT_OFFSET)
     )
     ends.append(
-        min(row['repeat-end(mm10)'], summit + offset)
+        min(row['repeat-end(mm10)'], summit + SUMMIT_OFFSET)
     )
 
-df['5`UTR-summit-window-start(mm10)'] = starts
-df['5`UTR-summit-window-end(mm10)'] = ends
+df['joint-summit-150bp-window-start(mm10)'] = starts
+df['joint-summit-150bp-window-end(mm10)'] = ends
 
 
 # 5 - get sequence for each window
 windows = []
 for _, row in df.iterrows():
     windows.append(
-        Interval(row['chrom'], row['5`UTR-summit-window-start(mm10)'], row['5`UTR-summit-window-end(mm10)'], strand=row['strand'])
+        Interval(row['chrom'], row['joint-summit-150bp-window-start(mm10)'], row['joint-summit-150bp-window-end(mm10)'], strand=row['strand'])
     )
 
 fasta = BedTool(windows).sequence(
@@ -166,32 +164,57 @@ for window, seq in zip(windows, SeqIO.parse(fasta, format="fasta")):
 
     window_seq.append(str(seq.seq).upper())
 
-df['5`UTR-summit-window-seq'] = window_seq
+df['joint-summit-window-seq'] = window_seq
+
 
 # 5 - run zhunt for each window
-bestzseq, bestzscore, bestzpp, bestzseqstart, bestzseqend = [], [], [], [], []
-for sequence in df['5`UTR-summit-window-seq']:
+def run_zhunt(strand, mm10_repeat_start, mm10_repeat_end, mm10_summit, sequence: str, offset: int = 0) -> dict:
+    """
+    Run zhunt and return localization and scoring for the best Z-forming sequence.
+    In case of multiple sequences, return closest to the enrichment summit.
+
+    offset: distance from the repeat start, >0 for a window inside the repeat sequence
+    """
+    def tomm10(zstart, zend):
+        # repeat coordinates
+        zstart, zend = zstart + offset, zend + offset
+        # mm10 coordinates
+        if strand == "+":
+            zstart, zend = mm10_repeat_start + zstart, mm10_repeat_start + zend
+        else:
+            zstart, zend = mm10_repeat_end - zend, mm10_repeat_end - zstart
+        return zstart, zend
+
     result = utils.zhunt.run(sequence)
-    ind = result['Z-Score'].argmax()
+    result['Start'] -= 1
+    result['Start'] = result['Start'].astype(np.int64)
+    result['End'] = result['End'].astype(np.int64)
 
-    bestzseq.append(result['Sequence'][ind].upper())
-    bestzscore.append(result['Z-Score'][ind])
-    bestzpp.append(result['Conformation'][ind])
+    # select best Z-windows closest to the enrichment summit
+    maxz = result['Z-Score'].max()
+    candind = (result['Z-Score'] == maxz).values.nonzero()[0]
+    start, end = tomm10(result['Start'][candind].values,
+                        result['End'][candind].values)
+    center = ((start + end) / 2)
 
-    start, end = result['Start'][ind] - 1, result['End'][ind] - 1
-    bestzseqstart.append(start)
-    bestzseqend.append(end)
+    distance = np.abs(mm10_summit - center)
+    assert distance.max() < 15_000, f"{distance}, {mm10_summit}, {center}"
+    maxzind = candind[distance.argmin()]
+    assert result['Z-Score'][maxzind] == maxz
 
-df['best-zseq-in-window'] = bestzseq
-df['best-zseq-in-window-zscore'] = bestzscore
-df['best-zseq-in-window-conformation'] = bestzpp
-df['best-zseq-in-window-start(window)'] = bestzseqstart
-df['best-zseq-in-window-end(window)'] = bestzseqend
+    start, end = tomm10(result['Start'][maxzind], result['End'][maxzind])
+    return {
+        "z-score": maxz,
+        "z-seq": result['Sequence'][maxzind].upper(),
+        "conformation": result['Conformation'][maxzind],
+        "mm10-start": start,
+        "mm10-end": end
+    }
 
-# 6 - map zhunt window to the consensus
-conscenter, mm10start, mm10end = [], [], []
+
+bestzseq, bestzscore, bestzpp, mm10start, mm10end = [], [], [], [], []
 for _, row in df.iterrows():
-    window_start, window_end = row['5`UTR-summit-window-start(mm10)'], row['5`UTR-summit-window-end(mm10)']
+    window_start, window_end = row['joint-summit-150bp-window-start(mm10)'], row['joint-summit-150bp-window-end(mm10)']
     repeat_start, repeat_end = row['repeat-start(mm10)'], row['repeat-end(mm10)']
     if row['strand'] == "+":
         offset = window_start - repeat_start
@@ -199,67 +222,75 @@ for _, row in df.iterrows():
         assert row['strand'] == "-"
         offset = repeat_end - window_end
 
-    assert offset >= 0
-    # repeat coordinates
-    zstart, zend = row['best-zseq-in-window-start(window)'], row['best-zseq-in-window-end(window)']
-    zstart, zend = zstart + offset, zend + offset
-    # consensus coordinates
-    consstart = utils.miscellaneous.repeat_position_to_consensus_position(row['matching-to-consensus'], zstart)
-    consend = utils.miscellaneous.repeat_position_to_consensus_position(row['matching-to-consensus'], zend)
-    conscenter.append((consstart + consend) / 2)
+    result = run_zhunt(
+        row['strand'], repeat_start, repeat_end, row['joint-5`UTR-enrichment-summit(mm10)'],
+        row['joint-summit-window-seq'], offset
+    )
 
-    # mm10 coordinates
-    if row['strand'] == "+":
-        mm10start.append(repeat_start + zstart)
-        mm10end.append(repeat_start + zend)
-    else:
-        mm10start.append(repeat_end - zend)
-        mm10end.append(repeat_end - zstart)
+    bestzscore.append(result['z-score'])
+    bestzseq.append(result['z-seq'])
+    bestzpp.append(result['conformation'])
+    mm10start.append(result['mm10-start'])
+    mm10end.append(result['mm10-end'])
 
-df['best-zseq-in-window-center(consensus)'] = conscenter
+df['best-zseq-in-window'] = bestzseq
+df['best-zseq-in-window-zscore'] = bestzscore
+df['best-zseq-in-window-conformation'] = bestzpp
 df['best-zseq-in-window-start(mm10)'] = mm10start
 df['best-zseq-in-window-end(mm10)'] = mm10end
 
 
-# 7 - get best z-score for the whole 5`UTR
-bestzseq, bestzscore, bestzpp, conscenter, mm10start, mm10end = [], [], [], [], [], []
+# 7 - get best z-score for the repeat
+bestzseq, bestzscore, bestzpp, mm10start, mm10end = [], [], [], [], []
 for _, row in df.iterrows():
-    result = utils.zhunt.run(row['repeat-sequence'])
-    ind = result['Z-Score'].argmax()
+    result = run_zhunt(
+        row['strand'], row['repeat-start(mm10)'], row['repeat-end(mm10)'],
+        row['joint-5`UTR-enrichment-summit(mm10)'], row['repeat-sequence']
+    )
 
-    bestzseq.append(result['Sequence'][ind].upper())
-    bestzscore.append(result['Z-Score'][ind])
-    bestzpp.append(result['Conformation'][ind])
-
-    zstart, zend = result['Start'][ind] - 1, result['End'][ind] - 1
-    consstart = utils.miscellaneous.repeat_position_to_consensus_position(row['matching-to-consensus'], zstart)
-    consend = utils.miscellaneous.repeat_position_to_consensus_position(row['matching-to-consensus'], zend)
-    conscenter.append((consstart + consend) / 2)
-
-    # mm10 coordinates
-    if row['strand'] == "+":
-        mm10start.append(row['repeat-start(mm10)'] + zstart)
-        mm10end.append(row['repeat-start(mm10)'] + zend)
-    else:
-        mm10start.append(row['repeat-end(mm10)'] - zend)
-        mm10end.append(row['repeat-end(mm10)'] - zstart)
+    bestzscore.append(result['z-score'])
+    bestzseq.append(result['z-seq'])
+    bestzpp.append(result['conformation'])
+    mm10start.append(result['mm10-start'])
+    mm10end.append(result['mm10-end'])
 
 df['best-zseq-in-repeat'] = bestzseq
 df['best-zseq-in-repeat-zscore'] = bestzscore
 df['best-zseq-in-repeat-conformation'] = bestzpp
 df['best-zseq-in-repeat-start(mm10)'] = mm10start
 df['best-zseq-in-repeat-end(mm10)'] = mm10end
-df['best-zseq-in-repeat-center(consensus)'] = conscenter
+
+# Best z-sequence within the OFFSET bp from the summit
+matched = df['best-zseq-in-window-zscore'] == df['best-zseq-in-repeat-zscore']
+print(f"Best Z-score within the {SUMMIT_OFFSET}bp from the enrichment summit: {matched.mean()*100:.2f}%")
+
+# Map best Z-formers to Z22 peaks
+zseqs = []
+for _, row in df.iterrows():
+    zseqs.append(
+        Interval(row['chrom'], row['best-zseq-in-repeat-start(mm10)'], row['best-zseq-in-repeat-end(mm10)'])
+    )
+zseqs = BedTool(zseqs).sort().intersect(roi, wa=True, u=True)
+print(f'{len(zseqs)}/{len(df)}({len(zseqs)/len(df)*100:.2f}%) '
+      f'best z-formers are located inside the enrichment peak in 5`UTR')
+
+# Count overrepresented sequences
+for repeat, group in df.groupby(['repeat']):
+    mask = group['best-zseq-in-window-zscore'] == group['best-zseq-in-repeat-zscore']
+    group = group[mask]
+    print(repeat)
+    for mostcommon, count in Counter(group['best-zseq-in-window']).most_common(2):
+        print(f"\t{mostcommon} -> {count / len(group) * 100:.2f}%")
 
 df = df[[
     'repeat', 'chrom', 'repeat-start(mm10)', 'repeat-end(mm10)', 'strand',
-    'Z22-FLAG-enrichment-5`UTR-summit(consensus)', '5`UTR-summit-window-start(mm10)', '5`UTR-summit-window-end(mm10)',
+    'joint-5`UTR-enrichment-summit(mm10)', 'joint-summit-150bp-window-start(mm10)', 'joint-summit-150bp-window-end(mm10)',
     # summit window z-sequence
-    '5`UTR-summit-window-seq', 'best-zseq-in-window', 'best-zseq-in-window-zscore', 'best-zseq-in-window-conformation',
-    'best-zseq-in-window-start(mm10)', 'best-zseq-in-window-end(mm10)', 'best-zseq-in-window-center(consensus)',
+    'joint-summit-window-seq', 'best-zseq-in-window', 'best-zseq-in-window-zscore', 'best-zseq-in-window-conformation',
+    'best-zseq-in-window-start(mm10)', 'best-zseq-in-window-end(mm10)',
     # repeat window z-sequence
     'best-zseq-in-repeat', 'best-zseq-in-repeat-zscore', 'best-zseq-in-repeat-conformation',
-    'best-zseq-in-repeat-start(mm10)', 'best-zseq-in-repeat-end(mm10)', 'best-zseq-in-repeat-center(consensus)',
+    'best-zseq-in-repeat-start(mm10)', 'best-zseq-in-repeat-end(mm10)',
 ]]
 
 saveto = pathlib.Path(__file__).name.replace(".py", ".tsv")
