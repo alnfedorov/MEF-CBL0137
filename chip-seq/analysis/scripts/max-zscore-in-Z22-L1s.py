@@ -137,5 +137,5 @@ ax.legend(loc='upper right', handles=legend, frameon=False, fontsize=fontsize)
 ax.set_title("Location of max z-score for L1Md A/L1Md T bound by Z22 (CBL0137 14h)",
              fontsize=fontsize).set_position([.5, 1.05])
 
-saveto = pathlib.Path(__file__).name.replace(".py", ".eps")
+saveto = pathlib.Path(__file__).name.replace(".py", ".svg")
 fig.savefig(utils.paths.RESULTS.joinpath(saveto), bbox_inches="tight", pad_inches=0)
