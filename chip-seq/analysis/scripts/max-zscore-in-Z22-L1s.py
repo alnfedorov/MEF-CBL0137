@@ -74,23 +74,20 @@ def maxz_segment(consensus, repeat, segmentation):
         else:
             assert False, "Unable to classify the repeat!"
 
-    maxzseg = max(segments.items(), key=lambda x: x[1])
-    return maxzseg
+    maxz = max(segments.values())
+    return [k for k, v in segments.items() if v == maxz]
 
 
 # Determine maxz segment for each repeat
-maxz_segments = {"L1Md_A": [], "L1Md_T": []}
+maxz_segments = {"L1Md_A": defaultdict(int), "L1Md_T": defaultdict(int)}
 for repname, repeats in sequences.items():
     consensus = utils.l1consensus.sequence(repname)
     structure = utils.l1consensus.structure(repname)
     for sequence in repeats:
-        maxz_segments[repname].append(maxz_segment(consensus, sequence, structure))
-
-percentages = defaultdict(lambda: defaultdict(int))
-for repname, segments in maxz_segments.items():
-    for segment, _ in segments:
-        percentages[repname][segment] += 1
-    percentages[repname] = {k: v / len(segments) for k, v in percentages[repname].items()}
+        segments = maxz_segment(consensus, sequence, structure)
+        for seg in segments:
+            maxz_segments[repname][seg] += 1/len(segments)
+    maxz_segments[repname] = {k: v / len(repeats) for k, v in maxz_segments[repname].items()}
 
 ########################################################################################################################
 # make the graph
@@ -115,12 +112,13 @@ ax = fig.gca()
 ax.set_xticks([])
 
 ax.set_yticks(yticks)
-ax.set_yticklabels([f"{y}%" for y in yticks], fontsize=fontsize)
+ax.set_ylabel('Percentage (%)')
+ax.set_yticklabels([f"{y}" for y in yticks], fontsize=fontsize)
 
 offset = pad
 for region in order:
     for ind, repname in enumerate(elemorder):
-        value = round(percentages[repname][region] * 100, 1)
+        value = round(maxz_segments[repname][region] * 100, 1)
         rectangles = ax.bar(offset + ind * barw, value, color=colors[repname], width=barw,
                             edgecolor='black', align='edge')
         utils.miscellaneous.annotate_rectangles_with_values(rectangles, ax)
@@ -139,5 +137,5 @@ ax.legend(loc='upper right', handles=legend, frameon=False, fontsize=fontsize)
 ax.set_title("Location of max z-score for L1Md A/L1Md T bound by Z22 (CBL0137 14h)",
              fontsize=fontsize).set_position([.5, 1.05])
 
-saveto = pathlib.Path(__file__).name.replace(".py", ".svg")
+saveto = pathlib.Path(__file__).name.replace(".py", ".eps")
 fig.savefig(utils.paths.RESULTS.joinpath(saveto), bbox_inches="tight", pad_inches=0)
