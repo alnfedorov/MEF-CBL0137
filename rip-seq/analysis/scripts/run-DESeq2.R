@@ -1,6 +1,5 @@
 library("tximport")
 library("DESeq2")
-library("readr")
 
 args = commandArgs(TRUE)
 folder = args[1]
