@@ -39,3 +39,10 @@ pip-delete-this-directory.txt
 # IPython
 profile_default/
 ipython_config.py
+
+# BAM files
+*.bam
+*.bai
+
+# Salmon files
+*.sf
