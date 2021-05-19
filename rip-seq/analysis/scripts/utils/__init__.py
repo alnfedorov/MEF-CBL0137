@@ -1,1 +1,1 @@
-from . import paths, ensembl
+from . import paths, ensembl, ISG

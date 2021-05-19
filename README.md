@@ -1,4 +1,4 @@
-This repository contains the code needed to reproduce the analysis of NGS experiments in the paper: **MY-SUPER-PAPER-TITLE**.
+This repository contains the code needed to reproduce the analysis of NGS experiments in the paper: **ADAR1 loss unmasks the antitumor immunotherapeutic potential of ZBP1-driven necroptosis**.
 
 Each subfolder is devoted to a particular experiment and contains code together with a Docker file to reproduce the environment. 
 

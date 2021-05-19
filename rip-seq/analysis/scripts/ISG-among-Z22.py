@@ -1,7 +1,7 @@
 import pathlib
 
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 from matplotlib import patches as mpatches
 
 import utils
@@ -11,10 +11,7 @@ df = df[df['padj'] < 0.1]
 assert df['log2FoldChange'].min() >= 0.585
 Z22genes = set(df['Ensembl gene ID'])
 
-ISG = set()
-for file in [utils.paths.INTERFEROME_MEF, utils.paths.INTERFEROME_ALL]:
-    ISG.update(pd.read_csv(file)['Ensembl ID'])
-ISG.update(pd.read_excel(utils.paths.ISG_IN_HOME_MICROARRAYS)['ENSEMBLID'])
+ISG = utils.ISG.ids()
 
 Z22ISG = Z22genes.intersection(ISG)
 
