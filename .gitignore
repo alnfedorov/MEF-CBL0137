@@ -51,3 +51,8 @@ ipython_config.py
 *.fa
 *.fai
 *.fasta
+
+# Images
+*.png
+*.eps
+*.svg
