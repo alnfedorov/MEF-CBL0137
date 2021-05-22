@@ -16,9 +16,15 @@ DE_GENES = RESULTS.joinpath("DE-genes")
 ADAR1_WT_IFNb_72h_Z22_vs_IgG = DE_GENES.joinpath("ADAR1-WT-72h-Z22-vs-IgG.csv")
 
 REPMASKER = RESOURCES.joinpath("mm10-repeat-masker.bed.gz")
-COVERAGE_BLACKLIST = RESOURCES.joinpath("coverage-blacklist.bed.gz")
+COVERAGE_BLACKLIST = RESULTS.joinpath("coverage-blacklist.bed.gz")
 
-GENCODE_INTRONS = RESOURCES.joinpath("introns-gencode-vm25.bed.gz")
+EDITING_INDEX_ROOT = RESULTS.joinpath("editing-index")
+EDITING_INDEX_INTERVALS = EDITING_INDEX_ROOT.joinpath("intervals")
+EDITING_INDEX_VALUES = EDITING_INDEX_ROOT.joinpath("values")
+
+GENCODE_5UTR = RESOURCES.joinpath("5`utr-gencode-vm25.bed.gz")
 GENCODE_EXONS = RESOURCES.joinpath("exons-gencode-vm25.bed.gz")
+GENCODE_INTRONS = RESOURCES.joinpath("introns-gencode-vm25.bed.gz")
+GENCODE_3UTR = RESOURCES.joinpath("3`utr-gencode-vm25.bed.gz")
 FRAGMENTS_TO_FEATURES = RESULTS.joinpath("exons-introns-intergenic")
 BAM = RESOURCES.joinpath("BAM")
