@@ -9,6 +9,7 @@ RUN conda config --add channels bioconda && \
                                 xlrd=2.0.1 \
                                 openpyxl=3.0.7 \
                                 bioconductor-deseq2=1.30.1 \
+                                bioconductor-apeglm=1.12.0 \
                                 bioconductor-tximport=1.18.0 \
                                 bioconductor-gviz=1.34.1 \
                                 pybedtools=0.8.2 \
