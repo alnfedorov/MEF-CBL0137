@@ -21,7 +21,7 @@ introns = BedTool(utils.paths.GENCODE_INTRONS).sort().subtract(exons).subtract(r
 INDEX = GenomicArrayOfSets('auto', stranded=False)
 for name, bed in zip(['exon', 'intron', 'rRNA'], [exons, introns, rrna_repeats]):
     for interval in bed:
-        ginter = GenomicInterval(interval.chrom.replace("chr", ""), interval.start, interval.end)
+        ginter = GenomicInterval(interval.chrom, interval.start, interval.end)
         INDEX[ginter] += name
 
 
