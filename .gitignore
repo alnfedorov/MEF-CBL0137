@@ -46,3 +46,8 @@ ipython_config.py
 
 # Salmon files
 *.sf
+
+# FASTA files
+*.fa
+*.fai
+*.fasta
