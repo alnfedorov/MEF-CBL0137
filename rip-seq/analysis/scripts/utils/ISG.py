@@ -2,7 +2,7 @@ from typing import Set
 
 import pandas as pd
 
-from . import paths
+from . import paths, ensembl
 
 
 def ids(padjthr: float = 0.1) -> Set[str]:
@@ -19,3 +19,13 @@ def ids(padjthr: float = 0.1) -> Set[str]:
     assert df['log2FoldChange'].min() > 0.585
     ISG.update(df['Ensembl ID'])
     return ISG
+
+
+def names(padjthr: float = 0.1) -> Set[str]:
+    names = set()
+    for ensid in ids(padjthr):
+        try:
+            names.add(ensembl.id_to_name(ensid))
+        except ValueError:
+            continue
+    return names

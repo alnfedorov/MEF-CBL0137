@@ -4,7 +4,7 @@ Preprocessing, alignment, and quality control of RIP-seq experiments were perfor
 cd pipeline
 export NXF_VER=20.11.0-edge
 curl -s https://get.nextflow.io | bash
-sudo ./nextflow -bg run nf-core/rnaseq -resume -profile docker -revision 3.0 --input=design.csv --genome=GRCm38
+sudo ./nextflow -bg run nf-core/rnaseq -resume -profile docker -revision 3.0 --input=design.csv --genome=GRCm38 --aligner=hisat2
 ```
 To start a pipeline from scratch, one needs to download raw fq.gz reads from the SRA, place them in the `pipeline/fq.gz` folder, and modify the design document accordingly.
 
@@ -27,7 +27,7 @@ sudo docker run --rm -it -v $(pwd):/project --name ripseq-analysis-container rip
 ```
 Then run any **Python** script in the `scripts` folder. Additional notes for some steps are listed below.
 #### DE genes
-We used DESeq2 to determine genes enriched in Z22 over IgG. To run the DE analysis, first move Salmon per-gene quantification results `pipeline/results/star_salmon/SAMPLE_R1/quant.genes.sf` to the `analysis/resources/Salmon/SAMPLE.quant.genes.sf`. Then amend the `Salmon/samples.tsv` file if you used a different design for the pipeline and run the Python script: `scripts/run-DESeq2.py`.
+We used DESeq2 to determine genes enriched in Z22 over IgG. To run the DE analysis, first move Salmon per-gene quantification results `pipeline/results/star_salmon/SAMPLE_R1/quant.genes.sf` to the `analysis/resources/Salmon/SAMPLE.quant.genes.sf`. Then amend the `Salmon/samples.tsv` file if you used a different design for the pipeline and run the Python script: `scripts/run-Z22-J2-FLAG-DE.py`.
 #### Alu editing index (AEI)
 To compute the AEI index we used the following commands:
 ```bash
@@ -50,6 +50,32 @@ sudo docker run -v $(pwd):/data --rm -it ranedits bash
 RNAEditingIndex -d /data/final-bams -l /data/logs -o /data/output -os /data/editing-summary -f _chr.bam --genome mm10 --ts $(nproc)
 ```
 The output file located in the `summary` folder was hand-formatted and then attached as a supplement table to the paper.
+#### Editing index for other repeats
+We also calculated the editing index for other repeat families. To do this, we have combined biological replicates:
+```bash
+cd pipeline/results/star_salmon/final-bams
+samtools merge -@ $(nproc) RIP-ADAR1-KO-IFNb-0h-IgG.bam RIP-A1-ADAR1-KO-IFNb-0h-IgG_R1_chr.bam RIP-A2-ADAR1-KO-IFNb-0h-IgG_R1_chr.bam
+# .... merge all other experiments .....
+mkdir -p ../../../../analysis/results/editing-index/bam
+mv RIP-ADAR1* ../../../../analysis/results/editing-index/bam
+```
+Generated BED tracks for each repeat family: `python3 scripts/make-editing-index-intervals.py`.   
+And started the RNAEditingIndex pipeline:
+```bash
+cd analysis/results/editing-index
+mkdir values
+
+sudo docker run -v $(pwd):/data --rm -it ranedits bash
+
+for repeat in LINE LTR Low_complexity RC RNA Satellite Simple_repeat scRNA snRNA srpRNA SINE
+do
+    RNAEditingIndex --genome mm10 --ts $(nproc) --per_region_output --per_sample_output \ 
+                    -rb /data/intervals/$repeat.bed -d /data/bam -l /data/logs \ 
+                    -o /data/output -os /data/summary-$repeat -f .bam 
+    rm -rf logs output
+    mv /data/summary-$repeat values/$repeat
+done
+```
 #### Interferome database and IFN-I stimulated genes (ISG)
 To parse the interferome database, we divided all mm10 genes (GENCODE vM25 annotation) into 6 batches and manually submitted each of them to the interferome web interface. The server output for each package is located in the `results/Interferome` folder.
 

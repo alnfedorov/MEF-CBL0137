@@ -64,3 +64,54 @@ def name_to_id(gene: str) -> str:
     if gene in name_to_id:
         return name_to_id[gene]
     raise ValueError(f"Unknown gene name: {gene}")
+
+
+@lru_cache(maxsize=1)
+def _load_transcript_to_id():
+    df = pd.read_csv(BIOMART_MAPPING, sep="\t")
+    transcript_to_id = {k: v for k, v in zip(df['Transcript stable ID'].values, df["Gene stable ID"].values)}
+    transcript_to_id.update(
+        {k: v for k, v in zip(df['Transcript stable ID version'].values, df['Gene stable ID'].values)}
+    )
+    return transcript_to_id
+
+
+def transcript_to_gene_name(transcriptid: str) -> str:
+    transcript_to_id = _load_transcript_to_id()
+    if transcriptid not in transcript_to_id:
+        transcriptid = transcriptid.split(".")[0]
+        if transcriptid not in transcript_to_id:
+            raise ValueError(f"Unknown transcript ID: {transcriptid}")
+
+    geneid = transcript_to_id[transcriptid]
+    return id_to_name(geneid)
+
+
+def transcript_to_gene_id(transcriptid: str) -> str:
+    transcript_to_id = _load_transcript_to_id()
+    if transcriptid not in transcript_to_id:
+        transcriptid = transcriptid.split(".")[0]
+
+    if transcriptid not in transcript_to_id:
+        raise ValueError(f"Unknown transcript ID: {transcriptid}")
+    return transcript_to_id[transcriptid]
+
+
+@lru_cache(maxsize=1)
+def _load_gene_id_to_type():
+    df = pd.read_csv(BIOMART_MAPPING, sep="\t")
+    geneid_to_type = {k: v for k, v in zip(df['Gene stable ID'].values, df["Gene type"].values)}
+    geneid_to_type.update(
+        {k: v for k, v in zip(df["Gene stable ID version"].values, df["Gene type"].values)}
+    )
+    return geneid_to_type
+
+
+def gene_id_to_type(geneid: str) -> str:
+    geneid_to_type = _load_gene_id_to_type()
+    if geneid not in geneid_to_type:
+        geneid = geneid.split(".")[0]
+
+    if geneid not in geneid_to_type:
+        raise ValueError(f"Unknown gene ID: {geneid}")
+    return geneid_to_type[geneid]
