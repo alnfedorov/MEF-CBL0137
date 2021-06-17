@@ -4,7 +4,9 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 import pandas as pd
 
+import pathlib
 import utils
+from matplotlib import patches as mpatches
 
 
 def infermeta(sample: str) -> str:
@@ -125,6 +127,7 @@ df = df.rename(columns={
 })
 
 # make plots
+locations = ['mRNA', 'miRNA', 'Other RNA', 'Ambiguous', 'Intronic', 'Intergenic']
 colorsheme = {
     'mRNA': '#FB8A3A', 'miRNA': '#EA555A', 'Other RNA': '#509F55', 'Ambiguous': '#B2799F',
     'Intronic': '#447AA4', 'Intergenic': '#666666'
@@ -135,7 +138,6 @@ fig, axes = plt.subplots(2, 2, sharex=True, figsize=(16, 16))
 axes = axes.ravel()
 
 df = df.sort_values(by=['antibody']).set_index('antibody')
-locations = ['mRNA', 'miRNA', 'Other RNA', 'Ambiguous', 'Intronic', 'Intergenic']
 for treatment in ['IFNb-0h', 'IFNb-72h']:
     for cells in ['WT', 'KO']:
         axes[0].set_title(f"{cells} - {treatment}")
@@ -145,7 +147,25 @@ for treatment in ['IFNb-0h', 'IFNb-72h']:
         axes = axes[1:]
 df = df.reset_index()
 
-fig.savefig(utils.paths.RESULTS.joinpath("fragments-per-genomic-features.svg"), bbox_inches="tight", pad_inches=0)
+fig.savefig(utils.paths.RESULTS.joinpath("fragments-to-genomic-features.svg"), bbox_inches="tight", pad_inches=0)
 
 # pie-charts
+colors = [colorsheme[loc] for loc in locations]
+for ifnb in ["IFNb-0h", "IFNb-72h"]:
+    shares = df[(df['treatment'] == ifnb) & (df['antibody'] == "Z22") & (df['cells'] == "WT")][locations]
+    shares = shares.mean(axis=0).to_dict()
+    shares = [shares[loc] for loc in locations]
 
+    fig = plt.figure()
+    ax = plt.gca()
+    ax.set_title(f"RIP-seq by Z22 Ab ({ifnb.replace('b', 'β')})", fontsize="xx-large")
+
+    wedges, _ = ax.pie(shares, startangle=90, colors=colors,
+                       wedgeprops=dict(width=0.5, linewidth=0.5, edgecolor='#585A5B'))
+    ax.set_title(ifnb, horizontalalignment='center', fontsize="xx-large")
+    ax.set_xlim(-1, 3)
+    legend = [mpatches.Patch(facecolor=colorsheme[k], label=k, edgecolor='black', linewidth=0.75) for k in locations]
+    ax.legend(handles=legend, frameon=False, fontsize='x-large', loc='right')
+
+    saveto = utils.paths.RESULTS.joinpath(f"fragments-to-genomic-features[WT-Z22-{ifnb}].eps")
+    fig.savefig(saveto, bbox_inches="tight", pad_inches=0)

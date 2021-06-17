@@ -4,6 +4,7 @@ from itertools import chain
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
 
+from utils import ensembl
 import pandas as pd
 from HTSeq import GenomicInterval, GenomicArrayOfSets, BAM_Reader, pair_SAM_alignments
 from pybedtools import BedTool
@@ -19,10 +20,18 @@ exons = BedTool(utils.paths.GENCODE_EXONS).sort().subtract(rrna_repeats)
 introns = BedTool(utils.paths.GENCODE_INTRONS).sort().subtract(exons).subtract(rrna_repeats)
 
 INDEX = GenomicArrayOfSets('auto', stranded=False)
-for name, bed in zip(['exon', 'intron', 'rRNA'], [exons, introns, rrna_repeats]):
+for name, bed in zip(['intron', 'rRNA'], [introns, rrna_repeats]):
     for interval in bed:
         ginter = GenomicInterval(interval.chrom, interval.start, interval.end)
         INDEX[ginter] += name
+
+for interval in exons:
+    transcript = interval.name.split("_")[0]
+    geneid = ensembl.transcript_to_gene_id(transcript)
+    genetype = ensembl.gene_id_to_type(geneid)
+
+    ginter = GenomicInterval(interval.chrom, interval.start, interval.end)
+    INDEX[ginter] += genetype
 
 
 def job(bamfile: str):
@@ -65,28 +74,3 @@ with Pool(processes=cpu_count() - 2) as pool:
         )
     for h in handlers:
         h.wait()
-
-key, exons, introns, intergenic, ambiguous, rRNA = [], [], [], [], [], []
-for file in utils.paths.FRAGMENTS_TO_FEATURES.iterdir():
-    with open(file.absolute(), 'rb') as stream:
-        data = pickle.load(stream)
-    key.append(file.name.replace(".namesorted.pkl", ""))
-    exons.append(data.pop('exon'))
-    introns.append(data.pop('intron'))
-    intergenic.append(data.pop('intergenic'))
-    rRNA.append(data.pop('rRNA'))
-    ambiguous.append(0)
-    for k in data:
-        assert isinstance(k, tuple) and len(k) >= 2
-        if "rRNA" in k:
-            continue
-        else:
-            ambiguous[-1] += data[k]
-
-df = pd.DataFrame({"sample": key, "exons": exons, "introns": introns,
-                   "intergenic": intergenic, "ambiguous": ambiguous})
-
-total = df['exons'] + df['introns'] + df['intergenic'] + df['ambiguous']
-for k in ['exons', 'introns', 'intergenic', 'ambiguous']:
-    df[k] = df[k] / total
-df.to_csv(utils.paths.RESULTS.joinpath("fragments-to-exons-introns-intergenic.csv"), index=False)
