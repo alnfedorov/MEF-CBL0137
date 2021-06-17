@@ -60,3 +60,6 @@ ipython_config.py
 *.png
 *.eps
 *.svg
+
+# Coverage tracks
+*.bw
