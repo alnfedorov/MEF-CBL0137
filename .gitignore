@@ -44,6 +44,10 @@ ipython_config.py
 *.bam
 *.bai
 
+# Tables
+*.tsv
+*.csv
+
 # Salmon files
 *.sf
 
