@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     python3.8 python3.8-dev python3-pip \
     bedtools=2.27.1+dfsg-4ubuntu1 \
     r-base=3.6.3-2 \
-    libssl-dev=1.1.1f-1ubuntu2.3 \
+    libssl-dev=1.1.1f-1ubuntu2.4 \
     curl=7.68.0-1ubuntu2.5 \
     libcurl4-openssl-dev=7.68.0-1ubuntu2.5\
     libxml2-dev=2.9.10+dfsg-5 \

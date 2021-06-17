@@ -37,5 +37,3 @@ sudo docker build -t chipseq-analysis:latest docker/
 sudo docker run --rm -it -v $(pwd):/project --name chipseq-analysis-container chipseq-analysis:latest
 ```
 Then run any **Python** script in the `scripts` folder, for example: `python3 scripts/mm10-coverage-by-repeats`. 
-
-Note that figures in the publication are hand-edited versions of graphs created with these scripts. 
