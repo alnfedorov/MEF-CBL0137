@@ -1,7 +1,6 @@
 In total, 5 ChIP-seq experiments were analyzed with the following antibodies: **Z22**(curaxin 14h), **IgG**(curaxin 14h/0h), and **FLAG**(curaxin 14h/0h). Each experiment had two technical replicates.
 
-Here, curaxin 0h refers to untreated cells, **Z22** is an antibody for Z-DNA, **IgG** is a nonspecific antibody (control), and **FLAG** is an antibody to FLAG-
-tagged ZBP1 protein. 
+Here, curaxin 0h refers to untreated cells, **Z22** is an antibody for Z-DNA, **IgG** is a nonspecific antibody (control), and **FLAG** is an antibody to FLAG-tagged ZBP1 protein. 
 
 ### Pipeline
 Initial processing was performed via the Snakemake pipeline present in the `pipeline` folder:
