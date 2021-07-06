@@ -54,25 +54,3 @@ for (cell in c("ADAR1_WT", "ADAR1_KO")) {
     }
   }
 }
-
-# # Main effect in all experiments
-# dds = DESeqDataSetFromTximport(txi, colData = samples, design = ~cell + antibody + IFNb)
-# dds$IFNb = relevel(dds$IFNb, ref = "0h")
-# dds$cell = relevel(dds$cell, ref = "ADAR1_WT")
-# dds$antibody = relevel(dds$antibody, ref = "IgG")
-#
-# keep <- rowSums(counts(dds)) >= 10
-# dds <- dds[keep,]
-# dds <- DESeq(dds)
-#
-# for (antibody in c("Z22", "J2", "FLAG")) {
-#   coef = paste("antibody", antibody, "vs", "IgG", sep = "_")
-#   res = results(dds, name = coef, alpha = 0.1, lfcThreshold = 0.585, altHypothesis = 'greater')
-#   res.shrunk = lfcShrink(dds, coef = coef, res = res)
-#   res.shrunk$padj[is.na(res.shrunk$padj)] = 1
-#
-#   filename = paste(antibody, "vs", "IgG.csv", sep = "-")
-#   filename = gsub("_", "-", filename)
-#   filename = file.path(saveto, filename)
-#   write.csv(res.shrunk, filename)
-# }

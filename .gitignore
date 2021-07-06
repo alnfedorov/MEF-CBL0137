@@ -63,3 +63,6 @@ ipython_config.py
 
 # Coverage tracks
 *.bw
+
+# Snakemake cache
+.snakemake

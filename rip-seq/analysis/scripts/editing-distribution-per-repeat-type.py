@@ -3,7 +3,7 @@ from functools import lru_cache
 
 import numpy as np
 import pandas as pd
-import tqdm
+from tqdm import tqdm
 from HTSeq import GenomicInterval, GenomicArrayOfSets
 from pybedtools import BedTool
 
@@ -28,7 +28,7 @@ def map_to_genes(df: pd.DataFrame):
 
     gene = []
     geneloc = []
-    for coord in tqdm.tqdm(df['Coordinates']):
+    for coord in tqdm(df['Coordinates']):
         chrom, buffer = coord.split(":")
         start, end = buffer.split("-")
         coord = GenomicInterval(chrom, int(start), int(end))
@@ -102,11 +102,15 @@ df = loadsample("RIP-ADAR1-WT-IFNb-72h-Z22")
 ISG = utils.ISG.names()
 df['ISG'] = df['Gene'].apply(lambda genes: any(x in ISG for x in genes.split(";")) if genes != "na" else False)
 
+df.to_csv(utils.paths.RESULTS.joinpath(
+    "RAW-Editing-distribution(WT & IFNb-72h & Z22 & editing index > 0.5% & mean coverage > 10).csv"
+))
+
 df['Count'] = 0
 df = df.groupby(['ISG', 'RepeatCls', 'Location'])['Count'].count().reset_index()
 df = df.pivot(['ISG', 'RepeatCls'], 'Location', 'Count').fillna(0).astype(int)
 df['GrandTotal'] = df['exons'] + df['intergenic'] + df['introns'] + df['utr3'] + df['utr5']
 
-df.to_csv(
-    utils.paths.RESULTS.joinpath("Editing-distribution(Z22 & editing index > 0.5% & mean coverage > 10).csv")
-)
+df.to_csv(utils.paths.RESULTS.joinpath(
+    "Editing-distribution(WT & IFNb-72h & Z22 & editing index > 0.5% & mean coverage > 10).csv"
+))
