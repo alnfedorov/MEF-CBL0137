@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     libssl-dev=1.1.1f-1ubuntu2.4 \
     curl=7.68.0-1ubuntu2.5 \
     libcurl4-openssl-dev=7.68.0-1ubuntu2.5\
-    libxml2-dev=2.9.10+dfsg-5 \
+    libxml2-dev=2.9.10+dfsg-5ubuntu0.20.04.1 \
     clustalo=1.2.4-4build1 \
     build-essential libtool-bin automake \
     && rm -rf /var/lib/apt/lists/*

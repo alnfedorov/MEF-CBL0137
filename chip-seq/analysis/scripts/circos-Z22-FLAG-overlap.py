@@ -1,8 +1,9 @@
 import os
 import pathlib
 from pathlib import Path
-from pybedtools import BedTool
 from subprocess import check_call
+
+from pybedtools import BedTool
 
 import utils
 
