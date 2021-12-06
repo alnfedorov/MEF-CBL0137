@@ -1,1 +1,1 @@
-from . import paths, ensembl, ISG, repmasker, miscellaneous
+from . import paths, ensembl, DEG, repmasker, miscellaneous
