@@ -8,61 +8,63 @@ import utils
 
 df = pd.read_csv(utils.paths.EDITING_INDEX_VALUES.joinpath("SINE", "EditingIndex.csv"))
 
-for cells in ["WT", "KO"]:
-    shares = {"IgG": {}, "J2": {}, "Z22": {}}
-    for _, row in df.iterrows():
-        if cells not in row['Sample']:
-            continue
 
-        meta = row['Sample'].split('-')
-        antibody, ifnb = meta[-1], meta[-2]
-        if antibody not in shares:
-            continue
-        shares[antibody][f"IFNβ {ifnb}"] = row['A2GEditingIndex']
+shares = {"ADAR1-WT": {}, "ADAR1-KO": {}}
+for _, row in df.iterrows():
+    meta = row['Sample'].split('-')
+    antibody, ifnb = meta[-1], meta[-2]
+    if antibody != "Z22":
+        continue
+    if "WT" in meta:
+        shares["ADAR1-WT"][f"IFNβ {ifnb}"] = row['A2GEditingIndex']
+    else:
+        assert "KO" in meta
+        shares["ADAR1-KO"][f"IFNβ {ifnb}"] = row['A2GEditingIndex']
 
-    colors = {"IFNβ 0h": "#5B84B0", "IFNβ 72h": "#FC766A"}
 
-    elemorder = ["IFNβ 0h", "IFNβ 72h"]
-    order = ["IgG", "J2", "Z22"]
+colors = {"ADAR1-WT": "#DAF4FE", "ADAR1-KO": "#FCE9EF"}
 
-    barw = 0.15
-    gap = barw / 2
-    pad = barw / 2
+order = ["IFNβ 0h", "IFNβ 72h"]
+elemorder = ["ADAR1-KO", "ADAR1-WT"]
 
-    anno_vertical_offset = 0.02
-    yticks = [0.15, 0.30, 0.45, 0.6, 0.75, 0.9]
-    lw = 0.75
-    fontsize = "large"
-    fontsizelbl = "x-large"
+barw = 0.15
+gap = barw / 2
+pad = barw / 2
 
-    fig = plt.figure(figsize=(7, 6))
-    ax = fig.gca()
-    ax.set_xticks([])
+anno_vertical_offset = 0.02
+yticks = [0.15, 0.30, 0.45, 0.6, 0.75, 0.9]
+lw = 0.75
+fontsize = "large"
+fontsizelbl = "x-large"
 
-    ax.set_yticks(yticks)
-    ax.set_ylabel('Alu editing index', fontsize=fontsize)
-    ax.set_yticklabels([f"{y}%" for y in yticks], fontsize=fontsize)
+fig = plt.figure(figsize=(7, 6))
+ax = fig.gca()
+ax.set_xticks([])
 
-    offset = pad
-    for antibody in order:
-        for ind, condition in enumerate(elemorder):
-            value = round(shares[antibody][condition], 3)
-            rectangles = ax.bar(offset + ind * barw, value, color=colors[condition],
-                                width=barw, edgecolor='black', align='edge')
-            utils.miscellaneous.annotate_rectangles_with_values(rectangles, ax)
-        ax.text(offset + len(colors) * barw / 2, -anno_vertical_offset, antibody, fontweight="bold",
-                horizontalalignment='center', verticalalignment='top', fontsize=fontsizelbl)
-        offset = offset + len(colors) * barw + gap
+ax.set_yticks(yticks)
+ax.set_ylabel('Alu editing index', fontsize=fontsize)
+ax.set_yticklabels([f"{y}%" for y in yticks], fontsize=fontsize)
 
-    ax.set_ylim((0, yticks[-1] * 1.1))
-    ax.set_xlim(0, offset)
-    ax.spines["right"].set_visible(False)
-    ax.spines["top"].set_visible(False)
+offset = pad
+for antibody in order:
+    for ind, celltype in enumerate(elemorder):
+        value = round(shares[celltype][antibody], 3)
+        rectangles = ax.bar(offset + ind * barw, value, color=colors[celltype],
+                            width=barw, edgecolor='black', align='edge')
+        utils.miscellaneous.annotate_rectangles_with_values(rectangles, ax)
+    ax.text(offset + len(colors) * barw / 2, -anno_vertical_offset, antibody, fontweight="bold",
+            horizontalalignment='center', verticalalignment='top', fontsize=fontsizelbl)
+    offset = offset + len(colors) * barw + gap
 
-    legend = [mpatches.Patch(facecolor=colors[k], label=k.replace("_", " "),
-                             edgecolor='black', linewidth=lw) for k in elemorder]
-    ax.legend(loc='upper left', handles=legend, frameon=False, fontsize=fontsizelbl)
-    ax.set_title(f"AEI, ADAR1-{cells}", fontsize=fontsizelbl).set_position([.5, 1.05])
+ax.set_ylim((0, yticks[-1] * 1.1))
+ax.set_xlim(0, offset)
+ax.spines["right"].set_visible(False)
+ax.spines["top"].set_visible(False)
 
-    saveto = pathlib.Path(__file__).name.replace(".py", f"-ADAR1-{cells}.eps")
-    fig.savefig(utils.paths.RESULTS.joinpath(saveto), bbox_inches="tight", pad_inches=0)
+legend = [mpatches.Patch(facecolor=colors[k], label=k.replace("_", " "),
+                         edgecolor='black', linewidth=lw) for k in elemorder]
+ax.legend(loc='upper left', handles=legend, frameon=False, fontsize=fontsizelbl)
+ax.set_title(f"RNAs bound by Z22 Ab", fontsize=fontsizelbl).set_position([.5, 1.05])
+
+saveto = pathlib.Path(__file__).name.replace(".py", f".svg")
+fig.savefig(utils.paths.RESULTS.joinpath(saveto), bbox_inches="tight", pad_inches=0)
