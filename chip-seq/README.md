@@ -10,7 +10,7 @@ sudo docker build -t chipseq:latest docker/
 sudo docker run --rm -it -v $(pwd):/project --name chipseq-container chipseq:latest
 snakemake --cores $(nproc) --configfile config/config.yaml -d . --snakefile workflow/Snakefile  all
 ```
-Before running the pipeline, make sure to place raw fq.gz files in `pipeline/results/pe-{SAMPLE NAME}/fq.gz` folders. Refer to the `pipeline/config/config.yaml` for a list of samples used in the research (fq.gz files can be downloaded from the SRA).
+Before running the pipeline, make sure to place raw fq.gz files in `pipeline/results/pe-{SAMPLE NAME}/fq.gz` folders. Refer to the `pipeline/config/config.yaml` for a list of samples used in the research (fq.gz files can be downloaded from the SRA: SRP339170).
 
 Once the pipeline finishes, called peaks, fold enrichment tracks and basic QC metrics will be available in the `pipeline/results` folder.
 
@@ -27,7 +27,8 @@ cp -R pipeline/results/peaks/ analysis/resources/peaks
 ```
 There are additional external data (RepeatMasker annotation, ENCODE blacklist, L1Base) stored directly in the repository. To avoid running the entire pipeline, one can use signal and peak files from the GEO submission.
 
-Some analysis require a compiled zhunt program, which can be built with GCC: `gcc analysis/resources/zhunt2.c -lm -o analysis/resources/zhunt2`. **We are waiting for the licensed version of zhunt to include the sources in the repository.**
+Some analysis require a compiled zhunt program, which can be built with GCC: `gcc analysis/resources/zhunt2.c -lm -o analysis/resources/zhunt2`. 
+**Unfortunately, we don't have a legal right to store zhunt in the repository. Please contact the original author for a copy of the software.**
 #### Reproduction of results 
 The first step to reproduce analysis is to restore the environment described in the docker file:
 ```bash
