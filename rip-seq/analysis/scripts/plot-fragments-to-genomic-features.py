@@ -3,10 +3,9 @@ from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import pandas as pd
-
-import pathlib
-import utils
 from matplotlib import patches as mpatches
+
+import utils
 
 
 def infermeta(sample: str) -> str:
@@ -14,8 +13,6 @@ def infermeta(sample: str) -> str:
         antibody = "IgG"
     elif "Z22" in sample:
         antibody = "Z22"
-    elif "J2" in sample:
-        antibody = "J2"
     else:
         antibody = pd.NA
 

@@ -27,3 +27,5 @@ GENCODE_GENES = RESOURCES.joinpath("genes-gencode-vm25.bed.gz")
 
 FRAGMENTS_TO_FEATURES = RESULTS.joinpath("fragments-to-exons-introns-intergenic")
 FRAGMENTS_TO_GENES = RESULTS.joinpath("fragments-to-genes")
+
+BAM = RESOURCES.joinpath("BAM")

@@ -4,12 +4,11 @@ from itertools import chain
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
 
-from utils import ensembl
-import pandas as pd
-from HTSeq import GenomicInterval, GenomicArrayOfSets, BAM_Reader, pair_SAM_alignments
+from HTSeq import GenomicInterval, GenomicArrayOfSets, BAM_Reader, pair_SAM_alignments_with_buffer
 from pybedtools import BedTool
 
 import utils
+from utils import ensembl
 
 utils.paths.FRAGMENTS_TO_FEATURES.mkdir(exist_ok=True, parents=True)
 
@@ -39,7 +38,7 @@ def job(bamfile: str):
     counts = defaultdict(int)
     reader = BAM_Reader(bamfile)
     acceptedop = {"M", "=", "X"}
-    for bundle in pair_SAM_alignments(reader, bundle=True, primary_only=True):
+    for bundle in pair_SAM_alignments_with_buffer(reader, primary_only=True):
         if len(bundle) != 1:
             continue
         lmate, rmate = bundle[0]
