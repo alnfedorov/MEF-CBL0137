@@ -1,14 +1,19 @@
 from collections import defaultdict
 from functools import lru_cache
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 from HTSeq import GenomicInterval, GenomicArrayOfSets
 from pybedtools import BedTool
+from tqdm import tqdm
 
 import utils
 
+
+# pd.set_option('display.max_rows', 500)
+# pd.set_option('display.max_columns', 500)
+# pd.set_option('display.width', 1000)
 
 @lru_cache(maxsize=1)
 def build_genes_index() -> GenomicArrayOfSets:
@@ -55,6 +60,29 @@ def map_to_genes(df: pd.DataFrame):
     return df
 
 
+@lru_cache(maxsize=1)
+def build_repeats_index() -> Dict[Tuple[str, int, int], str]:
+    index = {}
+    for repeat in BedTool(utils.paths.REPMASKER):
+        index[(repeat.chrom, repeat.start, repeat.end)] = repeat.name
+    return index
+
+
+def map_to_repeats(df: pd.DataFrame):
+    names = []
+    index = build_repeats_index()
+    for coord in tqdm(df['Coordinates']):
+        chrom, buffer = coord.split(":")
+        start, end = buffer.split("-")
+        key = (chrom, int(start), int(end))
+        if key in index:
+            names.append(index[key])
+        else:
+            names.append("NA")
+    df['RepeatName'] = names
+    return df
+
+
 def loadediting(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
     df['Coordinates'] = [f'{chrom}:{start}-{end}'
@@ -77,40 +105,89 @@ def loadediting(path: str) -> pd.DataFrame:
     reads_per_T = df['TotalCoverageAtTPositions'] / df['NumOfTPositionsCovered']
     df['Gene'] = np.where(df['A2G'] == "+", df['SenseGeneCommonName'], df['AntisenseGeneCommonName'])
     df['MeanCoveragePerSite'] = np.where(df['A2G'] == "+", reads_per_A.round(2), reads_per_T.round(2))
+    df['NumSites'] = np.where(df['A2G'] == "+", df['NumOfAPositionsCovered'], df['NumOfTPositionsCovered'])
     df['InferredStrand'] = df['A2G']
     df = df[[
-        'Coordinates', 'InferredStrand', 'Gene', 'EditingIndex', 'MeanCoveragePerSite', 'Mismatches', 'Matches'
+        'Coordinates', 'InferredStrand', 'Gene', 'EditingIndex', 'MeanCoveragePerSite',
+        'NumSites', 'Mismatches', 'Matches'
     ]]
     return df.set_index(['Coordinates', 'InferredStrand', 'Gene'])
 
 
-def loadsample(sample: str, minreads_per_site: float = 10, editingthr: float = 0.5):
+def loadsample(sample: str, minreads_per_site: float = 5, editingthr: Tuple[float] = (1, 90)):
     perrepdf = []
     for folder in utils.paths.EDITING_INDEX_VALUES.iterdir():
         file = folder.joinpath(sample, "StrandDerivingCountsPerRegion.csv")
         df = loadediting(file).reset_index()
-        df = df[(df['MeanCoveragePerSite'] > minreads_per_site) & (df['EditingIndex'] > editingthr)]
+        # Drop hyperedited / lowedited regions => sequencing errors(mostly)
+        df = df[(df['MeanCoveragePerSite'] > minreads_per_site) &
+                (df['EditingIndex'] > editingthr[0]) &
+                (df['EditingIndex'] < editingthr[1])]
         df = map_to_genes(df)
+        df = map_to_repeats(df)
         df['RepeatCls'] = folder.name
         perrepdf.append(df)
     df = pd.concat(perrepdf)
+
+    # Keep only curated hits
+    curated = pd.read_csv(utils.paths.CURATED_EDITED_REPEATS)
+    curated = set(curated.Coordinates)
+    df = df[df.Coordinates.isin(curated)]
+
+    # Uncertain hits
+    # maybe = pd.read_csv(utils.paths.CURATED_MAYBE_EDITED_REPEATS)
+    # maybe = set(maybe.Coordinates)
+    # df['Maybe'] = df.Coordinates.isin(maybe)
+
+    # False positive hits
+    # blacklisted = pd.read_csv(utils.paths.CURATED_NOT_EDITED_REPEATS)
+    # blacklisted = set(blacklisted.Coordinates)
     return df
 
 
-df = loadsample("RIP-ADAR1-WT-IFNb-72h-Z22")
+raw = loadsample("RIP-ADAR1-WT-IFNb-72h-Z22")
 
-ISG = utils.ISG.names()
-df['ISG'] = df['Gene'].apply(lambda genes: any(x in ISG for x in genes.split(";")) if genes != "na" else False)
+ISG = utils.DEG.ISG()
+ISG = utils.DEG.names(ISG)
+raw['ISG'] = raw['Gene'].apply(lambda genes: any(x in ISG for x in genes.split(";")) if genes != "na" else False)
 
-df.to_csv(utils.paths.RESULTS.joinpath(
-    "RAW-Editing-distribution(WT & IFNb-72h & Z22 & editing index > 0.5% & mean coverage > 10).csv"
-))
+Z22 = utils.DEG.Z22().difference(utils.DEG.IgG())
+Z22 = utils.DEG.names(Z22)
+raw['Z22'] = raw['Gene'].apply(lambda genes: any(x in Z22 for x in genes.split(";")) if genes != "na" else False)
 
+raw.to_csv(utils.paths.RESULTS.joinpath(
+    "editing-distribution.csv"
+), index=False)
+
+# Gene level summary
+df = raw[raw.Location.isin({"utr5", "exons", "utr3", "introns"})]
+reps, genes, location, ids = [], [], [], []
+for repcls, subdf in df.groupby("RepeatCls"):
+    for _, row in subdf.iterrows():
+        for gene in row.Gene.split(";"):
+            reps.append(repcls)
+            genes.append(gene)
+            location.append(row.Location)
+            ids.append(utils.ensembl.name_to_id(gene))
+df = pd.DataFrame({"RepeatCls": reps, "Gene": genes, "EditedIn": location, "Ensembl Gene ID": ids})
+df['ISG'] = df['Gene'].isin(ISG)
+df['Z22'] = df['Gene'].isin(Z22)
+df['Biotype'] = df['Ensembl Gene ID'].apply(lambda x: utils.ensembl.gene_id_to_type(x))
+df[["Ensembl Gene ID", "Gene", "Biotype", "EditedIn", "RepeatCls", "Z22", "ISG"]].to_csv(
+    utils.paths.RESULTS.joinpath("edited-genes.tsv"), sep='\t', index=False
+)
+
+df = df[df.EditedIn == "utr3"]
+df = df[["RepeatCls", "Gene", "Z22", "ISG"]].drop_duplicates()
+df["mRNAs"] = 1
+df = df[["RepeatCls", "Z22", "ISG", "mRNAs"]].groupby(["RepeatCls", "Z22", "ISG"]).sum()
+df.to_csv(utils.paths.RESULTS.joinpath("editing-summary-per-mRNAs(3`UTRs).tsv"), sep="\t")
+
+# Repeats level summary
+df = raw
 df['Count'] = 0
-df = df.groupby(['ISG', 'RepeatCls', 'Location'])['Count'].count().reset_index()
-df = df.pivot(['ISG', 'RepeatCls'], 'Location', 'Count').fillna(0).astype(int)
-df['GrandTotal'] = df['exons'] + df['intergenic'] + df['introns'] + df['utr3'] + df['utr5']
-
+df = df.groupby(['Z22', 'ISG', 'RepeatCls', 'Location'])['Count'].count().reset_index()
+df = df.pivot(['RepeatCls', 'Z22', 'ISG'], 'Location', 'Count').fillna(0).astype(int)
 df.to_csv(utils.paths.RESULTS.joinpath(
-    "Editing-distribution(WT & IFNb-72h & Z22 & editing index > 0.5% & mean coverage > 10).csv"
-))
+    "editing-summary-per-repeats.tsv"
+), sep="\t")
