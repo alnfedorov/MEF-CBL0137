@@ -1,6 +1,8 @@
-import utils
 import math
+
 import pybedtools
+
+import utils
 
 Q_VALUES_COLUMN = 8
 FC_COLUMN = 6

@@ -1,11 +1,11 @@
 import os
 import tempfile
-from pybedtools import BedTool
+from collections import defaultdict
 from multiprocessing import cpu_count
 from subprocess import check_call
+
 from Bio import SeqIO
-import utils
-from collections import defaultdict
+from pybedtools import BedTool
 
 # gather intact repeats to build the consensus
 import utils.l1consensus

@@ -1,6 +1,6 @@
 import pathlib
-from typing import Tuple
 from collections import Counter
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -141,12 +141,12 @@ for _, row in df.iterrows():
 df['joint-summit-150bp-window-start(mm10)'] = starts
 df['joint-summit-150bp-window-end(mm10)'] = ends
 
-
 # 5 - get sequence for each window
 windows = []
 for _, row in df.iterrows():
     windows.append(
-        Interval(row['chrom'], row['joint-summit-150bp-window-start(mm10)'], row['joint-summit-150bp-window-end(mm10)'], strand=row['strand'])
+        Interval(row['chrom'], row['joint-summit-150bp-window-start(mm10)'], row['joint-summit-150bp-window-end(mm10)'],
+                 strand=row['strand'])
     )
 
 fasta = BedTool(windows).sequence(
@@ -175,6 +175,7 @@ def run_zhunt(strand, mm10_repeat_start, mm10_repeat_end, mm10_summit, sequence:
 
     offset: distance from the repeat start, >0 for a window inside the repeat sequence
     """
+
     def tomm10(zstart, zend):
         # repeat coordinates
         zstart, zend = zstart + offset, zend + offset
@@ -239,7 +240,6 @@ df['best-zseq-in-window-conformation'] = bestzpp
 df['best-zseq-in-window-start(mm10)'] = mm10start
 df['best-zseq-in-window-end(mm10)'] = mm10end
 
-
 # 7 - get best z-score for the repeat
 bestzseq, bestzscore, bestzpp, mm10start, mm10end = [], [], [], [], []
 for _, row in df.iterrows():
@@ -262,7 +262,7 @@ df['best-zseq-in-repeat-end(mm10)'] = mm10end
 
 # Best z-sequence within the OFFSET bp from the summit
 matched = df['best-zseq-in-window-zscore'] == df['best-zseq-in-repeat-zscore']
-print(f"Best Z-score within the {SUMMIT_OFFSET}bp from the enrichment summit: {matched.mean()*100:.2f}%")
+print(f"Best Z-score within the {SUMMIT_OFFSET}bp from the enrichment summit: {matched.mean() * 100:.2f}%")
 
 # Map best Z-formers to Z22 peaks
 zseqs = []
@@ -271,7 +271,7 @@ for _, row in df.iterrows():
         Interval(row['chrom'], row['best-zseq-in-repeat-start(mm10)'], row['best-zseq-in-repeat-end(mm10)'])
     )
 zseqs = BedTool(zseqs).sort().intersect(roi, wa=True, u=True)
-print(f'{len(zseqs)}/{len(df)}({len(zseqs)/len(df)*100:.2f}%) '
+print(f'{len(zseqs)}/{len(df)}({len(zseqs) / len(df) * 100:.2f}%) '
       f'best z-formers are located inside the enrichment peak in 5`UTR')
 
 # Count overrepresented sequences
@@ -284,7 +284,8 @@ for repeat, group in df.groupby(['repeat']):
 
 df = df[[
     'repeat', 'chrom', 'repeat-start(mm10)', 'repeat-end(mm10)', 'strand',
-    'joint-5`UTR-enrichment-summit(mm10)', 'joint-summit-150bp-window-start(mm10)', 'joint-summit-150bp-window-end(mm10)',
+    'joint-5`UTR-enrichment-summit(mm10)', 'joint-summit-150bp-window-start(mm10)',
+    'joint-summit-150bp-window-end(mm10)',
     # summit window z-sequence
     'joint-summit-window-seq', 'best-zseq-in-window', 'best-zseq-in-window-zscore', 'best-zseq-in-window-conformation',
     'best-zseq-in-window-start(mm10)', 'best-zseq-in-window-end(mm10)',

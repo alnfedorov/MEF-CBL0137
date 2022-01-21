@@ -86,7 +86,7 @@ for repname, repeats in sequences.items():
     for sequence in repeats:
         segments = maxz_segment(consensus, sequence, structure)
         for seg in segments:
-            maxz_segments[repname][seg] += 1/len(segments)
+            maxz_segments[repname][seg] += 1 / len(segments)
     maxz_segments[repname] = {k: v / len(repeats) for k, v in maxz_segments[repname].items()}
 
 ########################################################################################################################
