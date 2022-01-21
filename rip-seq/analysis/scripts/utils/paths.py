@@ -7,6 +7,7 @@ SALMON = RESOURCES.joinpath("Salmon")
 SIGNAL = RESOURCES.joinpath("signal")
 
 DE_GENES = RESULTS.joinpath("DE-genes")
+DE_TRANSCRIPTS = RESULTS.joinpath("DE-transcripts")
 DE_CLUSTERS = RESULTS.joinpath("DE-clusters")
 
 REPMASKER = RESOURCES.joinpath("mm10-repeat-masker.bed.gz")
@@ -29,3 +30,5 @@ FRAGMENTS_TO_FEATURES = RESULTS.joinpath("fragments-to-exons-introns-intergenic"
 FRAGMENTS_TO_GENES = RESULTS.joinpath("fragments-to-genes")
 
 BAM = RESOURCES.joinpath("BAM")
+
+REPEATS_IN_GENES = RESULTS.joinpath("repeats-in-genes.csv.gz")

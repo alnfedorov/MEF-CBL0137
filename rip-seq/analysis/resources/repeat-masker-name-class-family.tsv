@@ -1,3 +1,4 @@
+#repName	repClass	repFamily
 4.5SRNA	scRNA	scRNA
 5S	rRNA	rRNA
 7SK	RNA	RNA
@@ -180,6 +181,7 @@ CENSAT_MC	Satellite	centr
 (CGAA)n	Simple_repeat	Simple_repeat
 (CGAAT)n	Simple_repeat	Simple_repeat
 (CGAGA)n	Simple_repeat	Simple_repeat
+(ATCG)n	Simple_repeat	Simple_repeat
 (CGAGG)n	Simple_repeat	Simple_repeat
 (CGAG)n	Simple_repeat	Simple_repeat
 (CGAGT)n	Simple_repeat	Simple_repeat
@@ -272,8 +274,10 @@ C-rich	Low_complexity	Low_complexity
 (CTG)n	Simple_repeat	Simple_repeat
 (CTGTG)n	Simple_repeat	Simple_repeat
 CT-rich	Low_complexity	Low_complexity
+AG-rich	Low_complexity	Low_complexity
 (CTTAA)n	Simple_repeat	Simple_repeat
 (CTTAG)n	Simple_repeat	Simple_repeat
+(CGTAA)n	Simple_repeat	Simple_repeat
 (CTTA)n	Simple_repeat	Simple_repeat
 (CTTAT)n	Simple_repeat	Simple_repeat
 (CTTCG)n	Simple_repeat	Simple_repeat
@@ -344,6 +348,7 @@ FordPrefect	DNA	hAT-Tip100
 (GAGTG)n	Simple_repeat	Simple_repeat
 (GA)n	Simple_repeat	Simple_repeat
 GA-rich	Low_complexity	Low_complexity
+TC-rich	Low_complexity	Low_complexity
 (GATTG)n	Simple_repeat	Simple_repeat
 (GCATG)n	Simple_repeat	Simple_repeat
 (GCCTAA)n	Simple_repeat	Simple_repeat
@@ -1054,7 +1059,6 @@ Plat_L3	LINE	CR1
 polypurine	Low_complexity	Low_complexity
 polypyrimidine	Low_complexity	Low_complexity
 RCHARR1	DNA	hAT-Charlie
-#repName	repClass	repFamily
 Ricksha_0	DNA	MuDR
 Ricksha_a	DNA	MuDR
 Ricksha_b	DNA	MuDR

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from pybedtools import Interval
 
@@ -31,3 +31,12 @@ def merge(input: List[Interval]):
             end = current.end
     merged.append(Interval(chrom, start, end))
     return merged
+
+
+def distance(x: Interval, y: Interval) -> float:
+    return abs((x.start + x.end) / 2 - (y.start + y.end) / 2)
+
+
+# Custom __hash__ for Interval (pybedtools)
+def hashinter(x: Interval, cls: str) -> Tuple[str, str]:
+    return (f"{x.chrom}:{x.start}-{x.end}", cls)

@@ -1,5 +1,6 @@
+from collections import defaultdict
 from functools import lru_cache
-from typing import Tuple
+from typing import Tuple, Set
 
 import pandas as pd
 
@@ -115,3 +116,38 @@ def gene_id_to_type(geneid: str) -> str:
     if geneid not in geneid_to_type:
         raise ValueError(f"Unknown gene ID: {geneid}")
     return geneid_to_type[geneid]
+
+
+@lru_cache(maxsize=1)
+def _load_transcript_id_to_type():
+    df = pd.read_csv(BIOMART_MAPPING, sep="\t")
+    transcript_id_to_type = {k: v for k, v in zip(df['Transcript stable ID'].values, df["Transcript type"].values)}
+    transcript_id_to_type.update(
+        {k: v for k, v in zip(df["Transcript stable ID version"].values, df["Transcript type"].values)}
+    )
+    return transcript_id_to_type
+
+
+def transcript_id_to_type(tid: str) -> str:
+    transcript_id_to_type = _load_transcript_id_to_type()
+    if tid not in transcript_id_to_type:
+        tid = tid.split(".")[0]
+
+    if tid not in transcript_id_to_type:
+        raise ValueError(f"Unknown Transcript ID: {tid}")
+    return transcript_id_to_type[tid]
+
+
+@lru_cache(maxsize=1)
+def _load_gene_id_to_transcripts():
+    df = pd.read_csv(BIOMART_MAPPING, sep="\t")
+
+    mapping = defaultdict(set)
+    for gid, tid in zip(df['Gene stable ID'], df['Transcript stable ID']):
+        mapping[gid].add(tid)
+    return mapping
+
+
+def gene_id_to_transcripts(tid: str) -> Set[str]:
+    mapping = _load_gene_id_to_transcripts()
+    return mapping.get(tid, [])
