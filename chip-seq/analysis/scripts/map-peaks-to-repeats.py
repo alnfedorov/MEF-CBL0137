@@ -11,6 +11,8 @@ from tqdm import tqdm
 import utils
 from utils.miscellaneous import is_valid_chromosome
 
+REPORT = {"Repeat-free", "L1Md_T", "L1Md_A", "Other LINE-1s", "Simple_repeat", "SINE", "LTR"}
+
 
 def mappeaks(bed: BedTool, index: GenomicArrayOfSets) -> Dict[str, float]:
     coverage = defaultdict(float)
@@ -36,16 +38,17 @@ def mappeaks(bed: BedTool, index: GenomicArrayOfSets) -> Dict[str, float]:
         for k, v in peakcoverage.items():
             coverage[k] += v / totalinter
 
+    # Merge rare categories
+    keys = list(coverage.keys())
+    coverage['Other repeats'] = 0
+    for k in keys:
+        if k not in REPORT:
+            coverage['Other repeats'] += coverage.pop(k)
+
     # get percentages
     totalpeaks = sum(coverage.values())
     coverage = {k: v / totalpeaks * 100 for k, v in coverage.items()}
 
-    # Merge rare categories
-    threshold = 3
-    coverage['Other repeats'] = 0
-    for k in list(coverage.keys()):
-        if coverage[k] < threshold and k not in ("L1Md_A", "L1Md_T", "Simple_repeat", "Blacklisted"):
-            coverage['Other repeats'] += coverage.pop(k)
     return coverage
 
 
@@ -114,4 +117,7 @@ for name, bed in {"Z22": utils.paths.Z22_CURAX_14H, "FLAG": utils.paths.FLAG_CUR
     bed = BedTool(bed).filter(is_valid_chromosome).sort()
     bed = bed.subtract(blacklisted, A=True)
     coverage = mappeaks(bed, genindex)
+    print(name)
+    for k, v in coverage.items():
+        print(f"{k}\t{v / 100}")
     makeplot(coverage, name)

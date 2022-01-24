@@ -52,7 +52,6 @@ dds = dds[,dds$selection == "input"]
 # ISGs tests / DEGs tests
 treatment = c("48h", "48h", "24h")
 control = c("24h", "0h", "0h")
-degs = c()
 for (ind in 1:3) {
   dds$IFNb = relevel(dds$IFNb, ref = control[ind])
   deseq = DESeq(dds)
@@ -66,12 +65,6 @@ for (ind in 1:3) {
   filename = paste(coef, ".csv", sep = "")
   filename = file.path(saveto, filename)
   write.csv(res.shrunk, filename)
-
-  # DEGs
-  res = results(deseq, name = coef, alpha = 0.05, lfcThreshold = 0.585, altHypothesis = 'greaterAbs')
-  res$padj[is.na(res$padj)] = 1
-  cond.degs = res[res$padj < 0.05, ]
-  degs = c(degs, row.names(cond.degs))
 }
 
 # save normalized expression

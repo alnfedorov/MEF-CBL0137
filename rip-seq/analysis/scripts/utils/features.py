@@ -140,8 +140,7 @@ def edited_genes(location=("utr3", "exons", "utr5")) -> Set[str]:
     df = pd.read_csv(utils.paths.RESULTS.joinpath("editing-distribution.csv"))
     df = df[df['Location'].isin(location)]
     genes = set(chain(*[x.split(';') for x in df['Gene'] if x != "na"]))
-    ids = {utils.ensembl.name_to_id(x) for x in genes}
-    return ids
+    return genes
 
 
 def expressed_genes(threshold: float = 1e-6, gtype: Optional[str] = None) -> Set[str]:
@@ -150,7 +149,7 @@ def expressed_genes(threshold: float = 1e-6, gtype: Optional[str] = None) -> Set
     expressed = expressed.drop(columns=['index'])
 
     # mask = expressed[expressed['IFNb'] == f"IFNb-{ifnb}"].median(axis=0) > threshold
-    mask = (expressed.groupby(['IFNb']).mean() > threshold).any()
+    mask = (expressed.groupby(['IFNb']).max() > threshold).any()
 
     if gtype:
         genes = []

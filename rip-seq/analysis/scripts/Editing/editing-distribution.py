@@ -36,7 +36,7 @@ def map_to_genes(df: pd.DataFrame):
 
         keys = set()
         for iv, intersected in index[coord].steps():
-            if iv.order > 0:
+            if iv.length > 0:
                 keys |= intersected
         features = defaultdict(list)
         for key in keys:

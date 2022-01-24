@@ -33,12 +33,3 @@ res.shrunk$padj[is.na(res.shrunk$padj)] = 1
 
 filename = file.path(saveto, "GSE118926.csv")
 write.csv(res.shrunk, filename)
-
-# All DEGs
-res = results(dds, name = coef,
-              alpha = 0.05, lfcThreshold = 0.585, altHypothesis = 'greaterAbs')
-res.shrunk = lfcShrink(dds, coef = coef, res = res)
-res.shrunk$padj[is.na(res.shrunk$padj)] = 1
-
-filename = file.path(saveto, "GSE118926.alldegs.csv")
-write.csv(res.shrunk, filename)
