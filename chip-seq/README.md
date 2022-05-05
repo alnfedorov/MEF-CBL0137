@@ -27,8 +27,7 @@ cp -R pipeline/results/peaks/ analysis/resources/peaks
 ```
 There are additional external data (RepeatMasker annotation, ENCODE blacklist, L1Base) stored directly in the repository. To avoid running the entire pipeline, one can use signal and peak files from the GEO submission.
 
-Some scripts require a compiled zhunt program, which can be built with GCC: `gcc analysis/resources/zhunt2.c -lm -o analysis/resources/zhunt2`. 
-**Unfortunately, we don't have a legal right to store zhunt in the repository. Please contact the original author for a copy of the software.**
+Some scripts require a compiled [zhunt](https://github.com/Ho-Lab-Colostate/zhunt) program, which can be built with GCC: `gcc analysis/resources/zhunt2.c -lm -o analysis/resources/zhunt2`.
 #### Reproducibility
 The first step to reproduce the analysis is to restore the environment described in the docker file:
 ```bash
